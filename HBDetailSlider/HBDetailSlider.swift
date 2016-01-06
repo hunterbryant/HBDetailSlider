@@ -9,14 +9,18 @@
 import UIKit
 
 class HBDetailSlider: UIControl {
+	
+	//TODO: Add decelleration functionality.
+	//TODO: Add snapping to initial value functionality.
 
 	//MARK: Properties
 	
-	var value: Double = 0.5
 	var initialValue: Double = 0.5
-	var scale: Double = 5.0
+	var value: Double
+	var scale: Double = 4.0
 	var minimumValue: Double = 0.0
 	var maximumValue: Double = 1.0
+	var threshold: Double = 0.01
 	
 	var previousLocation = CGPoint()
 	
@@ -28,12 +32,14 @@ class HBDetailSlider: UIControl {
 	//MARK: Initialization
 	
 	required init?(coder aDecoder: NSCoder) {
+		self.value = self.initialValue
 		super.init(coder: aDecoder)
-		
+
 		drawSlider()
 	}
 	
 	override init(frame: CGRect) {
+		self.value = self.initialValue
 		super.init(frame: frame)
 
 		drawSlider()
@@ -55,7 +61,6 @@ class HBDetailSlider: UIControl {
 		return true
 	}
 	
-	
 	override func continueTrackingWithTouch(touch: UITouch, withEvent event: UIEvent?) -> Bool {
 		let location = touch.locationInView(self)
 		
@@ -63,16 +68,18 @@ class HBDetailSlider: UIControl {
 		let deltaLocation = Double(location.x - previousLocation.x)
 		let deltaValue = (maximumValue - minimumValue) * deltaLocation / Double(bounds.width)
 		
-		previousLocation = location
-		
 		// 2. Update the values
-		if deltaValue < 0 && value <= 0 {
+		if deltaValue < 0 && value <= 0{
 			value = 0
 		} else if deltaValue > 0 && value >= 1.0 {
-				value = 1.0
+			value = 1.0
+		} else if abs(initialValue-value) < threshold && abs(deltaValue/scale) < threshold {
+			value = initialValue
 		} else {
-			value += deltaValue / scale
+			value += (deltaValue) / scale
 		}
+		
+		previousLocation = location
 		
 		// 3. Update the UI
 		setNeedsDisplay()
@@ -90,17 +97,9 @@ class HBDetailSlider: UIControl {
 		
 		let scaledInitialValue = CGFloat(self.initialValue) * width
 		let scaledValue = CGFloat(self.value) * width
-		
-		//Drawing Initial Value Mark
-		let context = UIGraphicsGetCurrentContext()
-		CGContextSetStrokeColorWithColor(context, highlightTintColor.CGColor)
-		CGContextSetLineWidth(context, CGFloat(2.0))
-		CGContextMoveToPoint(context, scaledInitialValue, 0)
-		CGContextAddLineToPoint(context, scaledInitialValue, height/3)
-		
-		CGContextStrokePath(context)
-		
+	
 		//Drawing Value Mark
+		let context = UIGraphicsGetCurrentContext()
 		CGContextSetStrokeColorWithColor(context, indicatorColor.CGColor)
 		CGContextSetLineWidth(context, CGFloat(2.0))
 		CGContextMoveToPoint(context, scaledValue, 0)
@@ -108,24 +107,33 @@ class HBDetailSlider: UIControl {
 		
 		CGContextStrokePath(context)
 		
+		//Drawing Initial Value Mark
+		CGContextSetStrokeColorWithColor(context, highlightTintColor.CGColor)
+		CGContextSetLineWidth(context, CGFloat(2.0))
+		CGContextMoveToPoint(context, scaledInitialValue, 0)
+		CGContextAddLineToPoint(context, scaledInitialValue, height/3)
+		
+		CGContextStrokePath(context)
+		
 		//Drawing Lines
-		let amountOfLines = Int(scale * 5)
+		let amountOfLines = scale * 5
 		let totalWidth: CGFloat = CGFloat(amountOfLines) * 27
 		
-		for index in 0...amountOfLines+1 {
+		for index in 0...Int(amountOfLines)+1 {
 			
 			let lineScaledX: CGFloat = ((CGFloat(index))/(CGFloat(amountOfLines))) * (totalWidth + self.bounds.width)
 			let lineXPos: CGFloat = (lineScaledX - totalWidth) + totalWidth*CGFloat(value)
 			
-			//Drawing Line
 			CGContextSetStrokeColorWithColor(context, secondaryTintColor.CGColor)
 			CGContextSetLineWidth(context, CGFloat(1.0))
+			
+			//Drawing Line
 			CGContextMoveToPoint(context, lineXPos, height/3)
 			CGContextAddLineToPoint(context, lineXPos, height)
+			
 		}
 		
 		CGContextStrokePath(context)
-		
 
 	}
 	
